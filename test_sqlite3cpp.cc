@@ -15,7 +15,7 @@ int main()
         db.exec("INSERT INTO test(text) VALUES('test')");
 
         std::cout << "== Second inserted into test using exec() ==" << std::endl;
-        db.exec("INSERT INTO test(text) VALUES('test2')");
+        db.exec("INSERT INTO test(text, time) VALUES('test2')");
 
         std::string special_text = "text with ap'ostrophes and sla/shes in both \\ \
             directions are handled perfectly with bind!";
@@ -51,7 +51,7 @@ int main()
     }
     catch(SqliteException e)
     {
-        std::cerr << "Exception was cought: " << e.what() << std::endl;
+        std::cerr << "Exception: " << e.what() << std::endl;
     }
     return 0;
 }

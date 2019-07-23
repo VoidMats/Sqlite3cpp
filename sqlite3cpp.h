@@ -1,6 +1,7 @@
 #ifndef SQLITE3CPP_H
 #define SQLITE3CPP_H
 // C++ includes
+#include <iostream>
 #include <memory>
 #include <string>
 // Library includes
@@ -10,13 +11,15 @@
 class SqliteException : public std::exception
 {
 public:
-    SqliteException(int no, std::string msg) 
-        :number{no}, msg{msg} {
-            std::cerr << "Exception has been created: " << msg << std::endl;
-        }
+    SqliteException(int no, const std::string& msg) 
+        :number{no}, msg{msg} {}
 
     virtual const char* what() const noexcept {
         return this->msg.c_str();
+    }
+
+    int getNumber() {
+        return this->number;
     }
 private:
     int number;
@@ -52,16 +55,17 @@ public:
     Sqlite &operator = (Sqlite &&move) = default;
 
     void exec(std::string q) {
+        // alt sqlite3_exec(this->db, q, 0, 0, 0);
         setQuery(q);
         prepare();
         step();
         reset();
     }
 
-    void setQuery(std::string q) {
+    void setQuery(std::string const& q) {
         if(debug) std::cout << "Set query: " << q << std::endl;
-        if(this->prepared) {
-            SqliteException e(-1, "Can not set sql on prepared query.");
+        if(this->prepared || q == "") {
+            SqliteException e(-1, "Can not set sql on prepared query or the query is empty");
             throw e;
         } else {
             this->query = q;
@@ -69,20 +73,26 @@ public:
     }
 
     void prepare() {
-        if(debug) std::cout << "Prepare query" << std::endl;
-        this->prepared = true;
-        const char* tail;
-        int rc = sqlite3_prepare_v2(
-            this->db, 
-            this->query.c_str(), 
-            this->query.length(), 
-            &this->stmt, 
-            &tail);
-        if(rc != SQLITE_OK) {
-            SqliteException e(rc, "Could not prepare query:" + std::string(sqlite3_errmsg(this->db)));
+        if(this->query != "") {
+            if(debug) std::cout << "Prepare query" << std::endl;
+            const char* tail;
+            int rc = sqlite3_prepare_v2(
+                this->db, 
+                this->query.c_str(), 
+                this->query.length(), 
+                &this->stmt, 
+                &tail);
+            if(rc != SQLITE_OK) {
+                SqliteException e(rc, "Could not prepare query: " + std::string(sqlite3_errmsg(this->db)));
+                throw e;
+            }
+            this->prepared = true;
+            this->tail = std::string(tail);
+        } else {
+            SqliteException e(-1, "No query set" );
             throw e;
         }
-        this->tail = std::string(tail);
+        
     }
 
     bool step() {
@@ -106,7 +116,6 @@ public:
             default:
                 SqliteException e(rc, "Sqlite had an error: " + std::string(sqlite3_errmsg(this->db)));
         }
-        
         return return_value;
     }
 
@@ -158,18 +167,18 @@ public:
         }
     }
 
-    void bind(int where, double d)
+    void bind(int column, double d)
     {
-        int rc = sqlite3_bind_double(this->stmt, where, d);
+        int rc = sqlite3_bind_double(this->stmt, column, d);
         if(rc != SQLITE_OK) {
             SqliteException e(rc, "Could not bind double: " + std::string(sqlite3_errmsg(this->db)));
             throw e;
         }
     }
 
-    void bind(int where, int i)
+    void bind(int column, int i)
     {
-        int rc = sqlite3_bind_int(this->stmt, where, i);
+        int rc = sqlite3_bind_int(this->stmt, column, i);
         if(rc != SQLITE_OK)
         {
             SqliteException e(rc, "Could not bind int: " + std::string(sqlite3_errmsg(this->db)));
@@ -177,8 +186,8 @@ public:
         }
     }
 
-    void bind_null(int where) {
-        int rc = sqlite3_bind_null(this->stmt, where);
+    void bind_null(int column) {
+        int rc = sqlite3_bind_null(this->stmt, column);
         if(rc != SQLITE_OK) {
             SqliteException e(rc, "Could not bind to NULL: " + std::string(sqlite3_errmsg(this->db)));
             throw e;
