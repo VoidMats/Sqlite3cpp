@@ -153,7 +153,7 @@ public:
     }
 
     // Bind functions 
-    void bind(int column, std::string text)
+    void bind(int column, std::string const& text)
     {
         int rc = sqlite3_bind_text(
             this->stmt, 
@@ -167,7 +167,7 @@ public:
         }
     }
 
-    void bind(int column, double d)
+    void bind(int column, double const& d)
     {
         int rc = sqlite3_bind_double(this->stmt, column, d);
         if(rc != SQLITE_OK) {

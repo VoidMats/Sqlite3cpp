@@ -7,7 +7,7 @@ int main()
     try
     {
         // !!! Don't run Valgrind on in-memory database it leak memory
-        Sqlite db(":memory:", false);  // Open an in-memory database
+        Sqlite db("file:memory:", false);  // Open an in-memory database
         std::cout << "== Create table 'test' which has text ==" << std::endl;
         db.exec("CREATE TABLE test(id INTEGER PRIMARY KEY, text TEXT)"); //exec calls prepare and step at once.
     
@@ -15,7 +15,7 @@ int main()
         db.exec("INSERT INTO test(text) VALUES('test')");
 
         std::cout << "== Second inserted into test using exec() ==" << std::endl;
-        db.exec("INSERT INTO test(text, time) VALUES('test2')");
+        db.exec("INSERT INTO test(text) VALUES('test2')");
 
         std::string special_text = "text with ap'ostrophes and sla/shes in both \\ \
             directions are handled perfectly with bind!";
